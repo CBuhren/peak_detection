@@ -48,7 +48,7 @@ def sliding_window_extrema(iwv_smoothed: xr.DataArray, window_size=72, valid_rat
         - extrema_min_idx: Indices of identified minima of the smoothed profile
     """
 
-    half_window = window_size / 2
+    half_window = window_size // 2
     values = iwv_smoothed.values
 
     extrema_max_idx = []
@@ -728,7 +728,7 @@ def event_detection_algo(ds_mwr_concat_years, year, mo):
 
     return results
 
-def save_results_to_csv(results, filepath='/home/cbuhren/PhD/Analysis/', filename="iwv_detections_2012_2024_final.csv"):
+def save_results_to_csv(results, filepath='./', filename="iwv_detections.csv"):
     """
     The results from the detection algorithm are declared to a pandas Dataframe
     and saved as csv file to a specific location in `{filepath}/{filename}`
@@ -809,24 +809,38 @@ def save_results_to_csv(results, filepath='/home/cbuhren/PhD/Analysis/', filenam
     df.to_csv(filepath + filename, index=False)
     print(f'File saved to {filepath}/{filename}')
 
-def run_all_years():
+def run_all_years(data_path, start_year=2012, end_year=2024, output_path='./', output_filename="iwv_detections.csv"):
     """
     Main function to run detection algorithm and store results as csv.
-    Run the detection algorithm for all years (2012-2024).
-    Store the results to csv using `save_results_to_csv`.
+
+    Parameters:
+        - data_path: `str`, path to the directory containing yearly MWR data folders
+        - start_year: `int`, first year to process (default: 2012)
+        - end_year: `int`, last year to process (default: 2024)
+        - output_path: `str`, directory to save results (default: './')
+        - output_filename: `str`, name of output CSV file (default: 'iwv_detections.csv')
     """
 
-    filepath = '/net/norte/cbuhren/data/hatpro_processed'
-    ds_mwr_concat_years = load_and_concatenate_data(filepath)
+    ds_mwr_concat_years = load_and_concatenate_data(data_path)
 
     all_events = []
-    for year in range(2012, 2025):
+    for year in range(start_year, end_year + 1):
         for month in range(1, 13):
             monthly_events = event_detection_algo(ds_mwr_concat_years, year, month)
             all_events.extend(monthly_events)
         print(f'Done with year {year}')
 
-    save_results_to_csv(all_events)
+    save_results_to_csv(all_events, filepath=output_path, filename=output_filename)
 
-if __name__ == "__main__": # run script
-    run_all_years()
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) < 2:
+        print("Usage: python define_event.py <data_path> [start_year] [end_year]")
+        print("Example: python define_event.py /path/to/mwr/data 2012 2024")
+        sys.exit(1)
+
+    data_path = sys.argv[1]
+    start_year = int(sys.argv[2]) if len(sys.argv) > 2 else 2012
+    end_year = int(sys.argv[3]) if len(sys.argv) > 3 else 2024
+
+    run_all_years(data_path, start_year, end_year)
